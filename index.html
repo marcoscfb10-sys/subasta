@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Subasta a ciegas</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#2b1055;--card:#3d1f7a;--y:#ffcf33;--r:#ff5a5f;--t:#fff}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Trebuchet MS",system-ui,sans-serif;background:var(--bg);color:var(--t);min-height:100vh;display:flex;justify-content:center}
+#app{width:100%;max-width:440px;padding:18px}
+h1{font-family:Impact,"Arial Black",sans-serif;font-size:2.6rem;line-height:1;margin:.3em 0 .2em;font-weight:400;letter-spacing:.5px}
+h2{font-size:1.1rem;margin:0 0 6px}
+.c{background:var(--card);border-radius:18px;padding:16px;margin:12px 0}
+input{width:100%;padding:14px;border-radius:12px;border:0;font-size:1.1rem;margin:6px 0;background:#fff;color:#1a0b3a}
+button{width:100%;padding:14px;border:0;border-radius:12px;font-size:1.05rem;font-weight:700;background:var(--y);color:#1a0b3a;margin:6px 0;cursor:pointer}
+button.s{background:#5b3ba8;color:#fff}
+button.r{background:var(--r);color:#fff}
+button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.item{font-family:Impact,"Arial Black",sans-serif;font-size:2.4rem;text-align:center;margin:6px 0;font-weight:400}
+.price{font-family:Impact,"Arial Black",sans-serif;font-size:4.5rem;text-align:center;color:var(--y);line-height:1}
+.m{opacity:.75;font-size:.9rem}
+.tag{display:inline-block;background:#5b3ba8;border-radius:8px;padding:4px 9px;margin:3px 3px 0 0;font-size:.9rem}
+.code{font-family:Impact,sans-serif;font-size:3.6rem;letter-spacing:8px;text-align:center;color:var(--y)}
+.err{color:var(--r);font-weight:700;min-height:1.2em}
+.turn{border:3px solid var(--y)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const sb=supabase.createClient('https://ucsbpcteowwkfrroudsm.supabase.co','sb_publishable_luj0AA6VMalJ93SVdiX2LQ_NWbxwi9t');
+const $=id=>document.getElementById(id);
+const CATS=`Futbolistas|Messi,Cristiano Ronaldo,Mbappé,Haaland,Lamine Yamal,Vinicius,Modrić,Pedri
+Pizza|Mozzarella,Pepperoni,Jamón York,Champiñones,Piña,Bacon,Cebolla,Aceitunas
+Salón|Sofá,Tele,Lámpara,Alfombra,Estantería,Mesa de centro,Cuadro,Plantas
+Superpoderes|Volar,Invisibilidad,Telepatía,Superfuerza,Teletransporte,Parar el tiempo,Supervelocidad,Curarse solo
+Mascotas|Perro,Gato,Loro,Hámster,Conejo,Pez,Tortuga,Serpiente
+Videojuegos|Fortnite,Minecraft,GTA,Zelda,Mario Kart,FIFA,Pokémon,Among Us
+Coches|Ferrari,Lamborghini,Tesla,Seat Ibiza,Mini,Porsche,Mercedes,Renault Clio
+Viajes|Japón,Italia,México,Islandia,Tailandia,Nueva York,Grecia,Brasil
+Ciudades de España|Madrid,Barcelona,Sevilla,Valencia,Bilbao,Málaga,Granada,Santiago
+Helados|Chocolate,Vainilla,Fresa,Pistacho,Limón,Turrón,Stracciatella,Menta
+Redes sociales|TikTok,Instagram,YouTube,WhatsApp,X,Snapchat,Twitch,Netflix
+Instrumentos|Guitarra,Piano,Batería,Violín,Bajo,Saxofón,Trompeta,Mesa de DJ
+Deportes|Fútbol,Baloncesto,Tenis,Pádel,Natación,Boxeo,Fórmula 1,Golf
+Cocina|Nevera,Horno,Airfryer,Microondas,Cafetera,Batidora,Lavavajillas,Tostadora
+Dormitorio|Cama,Armario,Escritorio,Tele,Espejo,Luces LED,Puf,Cortinas
+Comida del mundo|Sushi,Tacos,Pasta,Paella,Kebab,Curry,Ramen,Hamburguesa
+Superhéroes|Spiderman,Batman,Iron Man,Superman,Hulk,Thor,Wonder Woman,Pantera Negra
+Trabajos|Piloto,Médico,Youtuber,Futbolista,Chef,Astronauta,Programador,Abogado
+Bebidas|Coca-Cola,Fanta,Café,Té,Zumo de naranja,Agua,Horchata,Batido
+Fiesta|Altavoces,Luces,Tarta,Globos,DJ,Karaoke,Fotomatón,Confeti`.split('\n').map(l=>{const[n,i]=l.split('|');return{n,i:i.split(',')}});
+
+let code,me,S,ch;
+const other=w=>w==='p1'?'p2':'p1';
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function give(s,who,cost){
+  const it=s.cat.i[s.i];
+  s[who].items.push(it);s[who].b-=cost;s.i++;
+  s.last=`${s[who].name} se lleva ${it} por ${cost} €`;
+}
+function settle(s){
+  while(s.i<8){
+    const a=s.p1,b=s.p2,f1=a.items.length>=4,f2=b.items.length>=4;
+    if(f1&&f2)break;
+    if(f1||f2){give(s,f1?'p2':'p1',0);continue;}
+    const k1=a.b<1,k2=b.b<1;
+    if(k1&&k2){give(s,a.items.length<=b.items.length?'p1':'p2',0);continue;}
+    if(k1||k2){give(s,k1?'p2':'p1',1);continue;}
+    break;
+  }
+  if(s.i>=8){s.status='end';}
+  else{s.status='play';s.bid=0;s.by=null;s.turn=s.opener;}
+}
+function win(s,who,cost){
+  s.opener=other(who);
+  give(s,who,cost);
+  settle(s);
+}
+
+async function push(s){
+  S=s;R();save();
+  await sb.from('rooms').update({state:s,updated_at:new Date().toISOString()}).eq('code',code);
+}
+function setS(s){
+  if(JSON.stringify(s)===JSON.stringify(S))return;
+  S=s;R();
+}
+function save(){localStorage.setItem('sub',JSON.stringify({code,me}))}
+
+async function crear(){
+  const name=$('nm').value.trim()||'Jugador 1';
+  const L='ABCDEFGHJKLMNPQRSTUVWXYZ';
+  code=Array.from({length:4},()=>L[Math.floor(Math.random()*L.length)]).join('');
+  const s={status:'lobby',p1:{name,b:20,items:[]},p2:null};
+  const {error}=await sb.from('rooms').insert({code,state:s});
+  if(error){$('er').textContent='No se pudo crear la sala. Inténtalo de nuevo.';return;}
+  me='p1';enter(s);
+}
+async function unirme(){
+  const name=$('nm').value.trim()||'Jugador 2';
+  const c=$('cd').value.trim().toUpperCase();
+  const {data}=await sb.from('rooms').select('state').eq('code',c).maybeSingle();
+  if(!data||data.state.status!=='lobby'){$('er').textContent='Ese código no existe o la sala ya está llena.';return;}
+  const s=data.state;
+  s.p2={name,b:20,items:[]};
+  s.cat=CATS[Math.floor(Math.random()*CATS.length)];
+  s.i=0;s.opener='p1';s.last='';
+  settle(s);
+  code=c;me='p2';
+  await sb.from('rooms').update({state:s,updated_at:new Date().toISOString()}).eq('code',code);
+  enter(s);
+}
+function enter(s){
+  S=s;save();R();
+  if(ch)sb.removeChannel(ch);
+  ch=sb.channel('room-'+code).on('postgres_changes',{event:'UPDATE',schema:'public',table:'rooms',filter:'code=eq.'+code},p=>setS(p.new.state)).subscribe();
+}
+function salir(){localStorage.removeItem('sub');location.reload()}
+
+function bid(){
+  const n=Math.floor(+$('n').value);
+  const s=JSON.parse(JSON.stringify(S));
+  if(s.turn!==me||!(n>s.bid)||n>s[me].b){$('er').textContent=`Tu puja debe ser mayor que ${s.bid} € y de máximo ${s[me].b} €.`;return;}
+  s.bid=n;s.by=me;
+  const o=other(me);
+  if(s[o].b<=n)win(s,me,n);else s.turn=o;
+  push(s);
+}
+function pasar(){
+  const s=JSON.parse(JSON.stringify(S));
+  if(s.turn!==me||!s.bid)return;
+  win(s,s.by,s.bid);
+  push(s);
+}
+function add(k){$('n').value=Math.min(S.bid+k,S[me].b)}
+
+function R(){
+  const a=$('app');
+  if(!S){
+    a.innerHTML=`<h1>Subasta a ciegas</h1><p class="m">20 € para quedarte con 4 de 8. Sin ver lo que viene.</p>
+    <div class="c"><h2>Tu nombre</h2><input id="nm" maxlength="14" placeholder="Nombre">
+    <button onclick="crear()">Crear sala</button></div>
+    <div class="c"><h2>¿Te han pasado un código?</h2><input id="cd" maxlength="4" placeholder="Código de 4 letras">
+    <button class="s" onclick="unirme()">Unirme a la sala</button></div><div class="err" id="er"></div>`;
+    return;
+  }
+  if(S.status==='lobby'){
+    a.innerHTML=`<h1>Sala creada</h1><div class="c"><p class="m">Pásale este código a tu rival:</p><div class="code">${code}</div></div>
+    <p class="m">Esperando a que se una… la partida empieza sola.</p><button class="s" onclick="salir()">Cancelar</button>`;
+    return;
+  }
+  const o=other(me),my=S[me],op=S[o];
+  const tags=p=>p.items.map(i=>`<span class="tag">${esc(i)}</span>`).join('')||'<span class="m">Nada todavía</span>';
+  const head=`<div class="row"><div class="c"><h2>${esc(my.name)} (tú)</h2><b>${my.b} €</b> · ${my.items.length}/4<div>${tags(my)}</div></div>
+  <div class="c"><h2>${esc(op.name)}</h2><b>${op.b} €</b> · ${op.items.length}/4<div>${tags(op)}</div></div></div>`;
+  if(S.status==='end'){
+    a.innerHTML=`<h1>Subasta terminada</h1>${head}<div class="c"><p>${esc(S.last||'')}</p><p><b>Decidid entre vosotros quién ha hecho el mejor equipo de ${esc(S.cat.n)}.</b></p></div><button onclick="salir()">Jugar otra vez</button>`;
+    return;
+  }
+  const mine=S.turn===me;
+  a.innerHTML=`<p class="m">${esc(S.cat.n)} · objeto ${S.i+1} de 8</p>
+  <div class="item">${esc(S.cat.i[S.i])}</div>
+  <div class="price">${S.bid} €</div>
+  <p class="m" style="text-align:center">${S.bid?`Puja más alta: ${esc(S[S.by].name)}`:'Nadie ha pujado todavía'}</p>
+  <div class="c ${mine?'turn':''}">${mine?`<h2>Te toca</h2>
+    <input id="n" type="number" inputmode="numeric" min="${S.bid+1}" max="${my.b}" value="${S.bid+1}">
+    <div class="row"><button class="s" onclick="add(1)">+1</button><button class="s" onclick="add(2)">+2</button><button class="s" onclick="add(5)">+5</button></div>
+    <button onclick="bid()">Pujar</button>${S.bid?'<button class="r" onclick="pasar()">Retirarme</button>':''}`
+    :`<h2>Turno de ${esc(op.name)}</h2><p class="m">Esperando su jugada…</p>`}</div>
+  <div class="err" id="er"></div>${S.last?`<p class="m">Anterior: ${esc(S.last)}</p>`:''}${head}`;
+}
+
+(async()=>{
+  R();
+  try{
+    const sv=JSON.parse(localStorage.getItem('sub')||'null');
+    if(sv){
+      const {data}=await sb.from('rooms').select('state').eq('code',sv.code).maybeSingle();
+      if(data){code=sv.code;me=sv.me;enter(data.state);}
+    }
+  }catch(e){}
+  setInterval(async()=>{
+    if(!code)return;
+    const {data}=await sb.from('rooms').select('state').eq('code',code).maybeSingle();
+    if(data)setS(data.state);
+  },2500);
+})();
+</script>
+</body>
+</html>

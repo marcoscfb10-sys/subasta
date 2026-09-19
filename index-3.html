@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Subasta a ciegas</title>
+<meta name="theme-color" content="#2b1055">
+<meta property="og:title" content="Subasta a ciegas">
+<meta property="og:description" content="20 € para quedarte con 4 de 8 objetos. Sin ver lo que viene. Reta a un amigo.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔨%3C/text%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#2b1055;--card:#3d1f7a;--y:#ffcf33;--r:#ff5a5f;--t:#fff}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Trebuchet MS",system-ui,sans-serif;background:var(--bg);color:var(--t);min-height:100vh;display:flex;justify-content:center}
+#app{width:100%;max-width:440px;padding:18px}
+h1{font-family:Impact,"Arial Black",sans-serif;font-size:2.6rem;line-height:1;margin:.3em 0 .2em;font-weight:400;letter-spacing:.5px}
+h2{font-size:1.1rem;margin:0 0 6px}
+.c{background:var(--card);border-radius:18px;padding:16px;margin:12px 0}
+input{width:100%;padding:14px;border-radius:12px;border:0;font-size:1.1rem;margin:6px 0;background:#fff;color:#1a0b3a}
+button{width:100%;padding:14px;border:0;border-radius:12px;font-size:1.05rem;font-weight:700;background:var(--y);color:#1a0b3a;margin:6px 0;cursor:pointer}
+button.s{background:#5b3ba8;color:#fff}
+button.r{background:var(--r);color:#fff}
+button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.item{font-family:Impact,"Arial Black",sans-serif;font-size:2.4rem;text-align:center;margin:6px 0;font-weight:400}
+.price{font-family:Impact,"Arial Black",sans-serif;font-size:4.5rem;text-align:center;color:var(--y);line-height:1}
+.m{opacity:.75;font-size:.9rem}
+.tag{display:inline-block;background:#5b3ba8;border-radius:8px;padding:4px 9px;margin:3px 3px 0 0;font-size:.9rem}
+.code{font-family:Impact,sans-serif;font-size:3.6rem;letter-spacing:8px;text-align:center;color:var(--y)}
+.err{color:var(--r);font-weight:700;min-height:1.2em}
+.pic{position:relative;height:190px;display:grid;place-items:center;font-size:6.5rem;background:var(--card);border-radius:18px;overflow:hidden;margin:6px 0}
+.pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.c b{font-size:1.5rem;color:var(--y)}
+.price{animation:pop .3s}
+@keyframes pop{from{transform:scale(1.35)}to{transform:scale(1)}}
+.tm{float:right;font-family:Impact,sans-serif;font-size:1.6rem;color:var(--y)}
+.tm.lo{color:var(--r)}
+summary{cursor:pointer;font-weight:700}
+.lk{background:none;color:#fff;opacity:.6;font-size:.9rem;padding:8px}
+@media (prefers-reduced-motion:reduce){.price{animation:none}}
+.turn{border:3px solid var(--y)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const sb=supabase.createClient('https://ucsbpcteowwkfrroudsm.supabase.co','sb_publishable_luj0AA6VMalJ93SVdiX2LQ_NWbxwi9t');
+const $=id=>document.getElementById(id);
+const CATS=`Futbolistas|Messi,Cristiano Ronaldo,Mbappé,Haaland,Lamine Yamal,Vinicius,Modrić,Pedri
+Pizza|Mozzarella,Pepperoni,Jamón York,Champiñones,Piña,Bacon,Cebolla,Aceitunas
+Salón|Sofá,Tele,Lámpara,Alfombra,Estantería,Mesa de centro,Cuadro,Plantas
+Superpoderes|Volar,Invisibilidad,Telepatía,Superfuerza,Teletransporte,Parar el tiempo,Supervelocidad,Curarse solo
+Mascotas|Perro,Gato,Loro,Hámster,Conejo,Pez,Tortuga,Serpiente
+Videojuegos|Fortnite,Minecraft,GTA,Zelda,Mario Kart,FIFA,Pokémon,Among Us
+Coches|Ferrari,Lamborghini,Tesla,Seat Ibiza,Mini,Porsche,Mercedes,Renault Clio
+Viajes|Japón,Italia,México,Islandia,Tailandia,Nueva York,Grecia,Brasil
+Ciudades de España|Madrid,Barcelona,Sevilla,Valencia,Bilbao,Málaga,Granada,Santiago
+Helados|Chocolate,Vainilla,Fresa,Pistacho,Limón,Turrón,Stracciatella,Menta
+Redes sociales|TikTok,Instagram,YouTube,WhatsApp,X,Snapchat,Twitch,Netflix
+Instrumentos|Guitarra,Piano,Batería,Violín,Bajo,Saxofón,Trompeta,Mesa de DJ
+Deportes|Fútbol,Baloncesto,Tenis,Pádel,Natación,Boxeo,Fórmula 1,Golf
+Cocina|Nevera,Horno,Airfryer,Microondas,Cafetera,Batidora,Lavavajillas,Tostadora
+Dormitorio|Cama,Armario,Escritorio,Tele,Espejo,Luces LED,Puf,Cortinas
+Comida del mundo|Sushi,Tacos,Pasta,Paella,Kebab,Curry,Ramen,Hamburguesa
+Superhéroes|Spiderman,Batman,Iron Man,Superman,Hulk,Thor,Wonder Woman,Pantera Negra
+Trabajos|Piloto,Médico,Youtuber,Futbolista,Chef,Astronauta,Programador,Abogado
+Bebidas|Coca-Cola,Fanta,Café,Té,Zumo de naranja,Agua,Horchata,Batido
+Fiesta|Altavoces,Luces,Tarta,Globos,DJ,Karaoke,Fotomatón,Confeti`.split('\n').map(l=>{const[n,i]=l.split('|');return{n,i:i.split(',')}});
+`🐐 🏆 ⚡ 🤖 🌟 💃 🎩 🧠
+🧀 🍕 🍖 🍄 🍍 🥓 🧅 🫒
+🛋️ 📺 💡 🧶 📚 ☕ 🖼️ 🪴
+🦅 👻 🧠 💪 🌀 ⏳ ⚡ ❤️‍🩹
+🐶 🐱 🦜 🐹 🐰 🐠 🐢 🐍
+🪂 ⛏️ 🚗 🗡️ 🏎️ ⚽ ⚡ 🚀
+🏎️ 🐂 🔋 🚗 🚙 🏁 ⭐ 🚘
+🗾 🍝 🌮 🧊 🏝️ 🗽 🏛️ 🎉
+🐻 ⛪ 💃 🥘 🎨 🏖️ 🏰 🐚
+🍫 🍦 🍓 🥜 🍋 🌰 🍨 🌿
+🎵 📸 ▶️ 💬 ✖️ 👻 🎮 🍿
+🎸 🎹 🥁 🎻 🪕 🎷 🎺 🎧
+⚽ 🏀 🎾 🏓 🏊 🥊 🏎️ ⛳
+🧊 🔥 🍟 ♨️ ☕ 🥤 🍽️ 🍞
+🛏️ 👔 🖥️ 📺 🪞 🌈 🟣 🪟
+🍣 🌮 🍝 🥘 🥙 🍛 🍜 🍔
+🕷️ 🦇 🤖 🦸 💚 ⚡ 👸 🐆
+👨‍✈️ 🩺 📹 ⚽ 👨‍🍳 👨‍🚀 💻 ⚖️
+🥤 🧡 ☕ 🍵 🍊 💧 🥛 🍓
+🔊 🪩 🎂 🎈 🎧 🎤 📸 🎊`.split('\n').forEach((l,k)=>CATS[k].e=l.split(' '));
+
+let code,me,S,ch,tS=Date.now(),au=-1;
+const other=w=>w==='p1'?'p2':'p1';
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function give(s,who,cost){
+  const it=s.cat.e[s.i]+' '+s.cat.i[s.i];
+  s[who].items.push(it);s[who].b-=cost;s.i++;
+  s.last=`${s[who].name} se lleva ${it} por ${cost} €`;
+}
+function settle(s){
+  s.pk=null;
+  while(s.i<8){
+    const a=s.p1,b=s.p2,f1=a.items.length>=4,f2=b.items.length>=4;
+    if(f1&&f2)break;
+    if(f1||f2){give(s,f1?'p2':'p1',0);continue;}
+    const k1=a.b<1,k2=b.b<1;
+    if(k1&&k2){give(s,a.items.length<=b.items.length?'p1':'p2',0);continue;}
+    if(k1||k2){s.pk=k1?'p2':'p1';break;}
+    break;
+  }
+  if(s.i>=8){s.status='end';}
+  else{s.status='play';s.bid=0;s.by=null;s.turn=s.pk||s.opener;}
+}
+function win(s,who,cost){
+  s.opener=other(who);
+  give(s,who,cost);
+  settle(s);
+}
+
+function push(s){
+  s.v=(S&&S.v||0)+1;
+  S=s;tS=Date.now();R();save();send(s);
+}
+async function send(s,n=0){
+  const {error}=await sb.from('rooms').update({state:s,updated_at:new Date().toISOString()}).eq('code',code);
+  if(error&&n<5)setTimeout(()=>{if(S&&S.v===s.v)send(s,n+1)},1500);
+}
+function setS(s){
+  if(S&&(s.v||0)<=(S.v||0))return;
+  S=s;tS=Date.now();R();
+  if(S.status==='play'&&S.turn===me){beep(660);navigator.vibrate&&navigator.vibrate(60)}
+}
+function save(){localStorage.setItem('sub',JSON.stringify({code,me}))}
+
+async function crear(){
+  const name=$('nm').value.trim()||'Jugador 1';
+  const L='ABCDEFGHJKLMNPQRSTUVWXYZ';
+  code=Array.from({length:4},()=>L[Math.floor(Math.random()*L.length)]).join('');
+  const pref=+$('ct').value,txt=$('ci').value.trim(),nom=$('cn').value.trim();
+  const its=txt.split(',').map(x=>x.trim().slice(0,24)).filter(Boolean);
+  let cu=null;
+  if(txt||nom){
+    if(its.length!==8||!nom){$('er').textContent='Para tu categoría escribe un nombre y exactamente 8 objetos separados por comas.';return;}
+    cu={n:nom,i:its,e:Array(8).fill('🎁')};
+  }
+  const s={status:'lobby',p1:{name,b:20,items:[]},p2:null,pref,cu};
+  const {error}=await sb.from('rooms').insert({code,state:s});
+  if(error){$('er').textContent='No se pudo crear la sala. Inténtalo de nuevo.';return;}
+  me='p1';enter(s);
+}
+async function unirme(){
+  const name=$('nm').value.trim()||'Jugador 2';
+  const c=$('cd').value.trim().toUpperCase();
+  const {data}=await sb.from('rooms').select('state').eq('code',c).maybeSingle();
+  if(!data||data.state.status!=='lobby'){$('er').textContent='Ese código no existe o la sala ya está llena.';return;}
+  const s=data.state;
+  s.p2={name,b:20,items:[]};
+  s.cat=s.cu||(s.pref>=0?CATS[s.pref]:CATS[Math.floor(Math.random()*CATS.length)]);
+  s.w={p1:0,p2:0};
+  s.i=0;s.opener='p1';s.last='';
+  settle(s);
+  s.v=1;
+  const {data:ok}=await sb.from('rooms').update({state:s,updated_at:new Date().toISOString()}).eq('code',c).eq('state->>status','lobby').select();
+  if(!ok||!ok.length){$('er').textContent='Ese código no existe o la sala ya está llena.';return;}
+  code=c;me='p2';enter(s);
+}
+function enter(s){
+  S=s;save();R();
+  if(ch)sb.removeChannel(ch);
+  ch=sb.channel('room-'+code).on('postgres_changes',{event:'UPDATE',schema:'public',table:'rooms',filter:'code=eq.'+code},p=>setS(p.new.state)).subscribe();
+}
+function salir(){localStorage.removeItem('sub');history.replaceState(null,'',location.pathname);location.reload()}
+function revancha(){
+  const s=JSON.parse(JSON.stringify(S));
+  let k;do{k=Math.floor(Math.random()*CATS.length)}while(CATS[k].n===s.cat.n);
+  s.cat=CATS[k];s.p1={name:s.p1.name,b:20,items:[]};s.p2={name:s.p2.name,b:20,items:[]};
+  s.i=0;s.last='';s.opener=other(s.opener);s.vt={};s.done=0;
+  settle(s);push(s);
+}
+function invitar(){
+  const u=location.origin+location.pathname+'?sala='+code;
+  const t='Te reto a una subasta a ciegas: 20 € para quedarte con 4 de 8. Sala '+code;
+  if(navigator.share)navigator.share({title:'Subasta a ciegas',text:t,url:u}).catch(()=>{});
+  else{navigator.clipboard&&navigator.clipboard.writeText(u);$('er').textContent='Enlace copiado, pégalo en un chat.';}
+}
+function votar(w){
+  const s=JSON.parse(JSON.stringify(S));
+  s.vt=s.vt||{};s.vt[me]=w;
+  if(s.vt.p1&&s.vt.p1===s.vt.p2&&!s.done){s.w=s.w||{p1:0,p2:0};s.w[w]++;s.done=1}
+  push(s);
+}
+let ac;
+addEventListener('pointerdown',()=>{try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume()}catch(e){}});
+function beep(f){try{const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;g.gain.value=.08;o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+.12)}catch(e){}}
+setInterval(()=>{
+  if(!S||S.status!=='play'||!S.cat)return;
+  const l=Math.max(0,25-Math.floor((Date.now()-tS)/1000)),e=$('tm');
+  if(e){e.textContent=l+' s';e.className='tm'+(l<=8?' lo':'')}
+  if(l===0&&S.turn===me&&au!==S.v){
+    au=S.v;
+    if(S.pk===me)elegir(true);else if(S.bid)pasar();else{$('n').value=1;bid()}
+  }
+},500);
+
+function bid(){
+  const n=Math.floor(+$('n').value);
+  const s=JSON.parse(JSON.stringify(S));
+  if(s.turn!==me||!(n>s.bid)||n>s[me].b){$('er').textContent=`Tu puja debe ser mayor que ${s.bid} € y de máximo ${s[me].b} €.`;return;}
+  s.bid=n;s.by=me;
+  const o=other(me);
+  if(s[o].b<=n)win(s,me,n);else s.turn=o;
+  push(s);
+}
+function pasar(){
+  const s=JSON.parse(JSON.stringify(S));
+  if(s.turn!==me||!s.bid)return;
+  win(s,s.by,s.bid);
+  push(s);
+}
+function add(k){$('n').value=Math.min(S.bid+k,S[me].b)}
+function elegir(t){
+  const s=JSON.parse(JSON.stringify(S));
+  if(s.pk!==me)return;
+  give(s,t?me:other(me),t?1:0);
+  settle(s);push(s);
+}
+const slug=t=>t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+function pickUI(){
+  const o=other(me),r=4-S[S.pk].items.length;
+  if(S.pk===me)return `<h2>${esc(S[o].name)} se ha quedado sin dinero</h2><p>Ahora eliges tú. Te faltan ${r} objetos.</p><button onclick="elegir(true)">Quedármelo por 1 €</button><button class="s" onclick="elegir(false)">Dejárselo a ${esc(S[o].name)}</button>`;
+  return `<h2>Te has quedado sin dinero</h2><p class="m">${esc(S[S.pk].name)} decide si se queda este objeto o te lo deja a ti.</p>`;
+}
+
+function R(){
+  const a=$('app');
+  if(!S){
+    a.innerHTML=`<h1>Subasta a ciegas</h1><p class="m">20 € para quedarte con 4 de 8. Sin ver lo que viene.</p>
+    <div class="c"><h2>Tu nombre</h2><input id="nm" maxlength="14" placeholder="Nombre">
+    <h2>Categoría</h2><select id="ct" style="width:100%;padding:12px;border-radius:12px;font-size:1rem;margin-bottom:6px"><option value="-1">Aleatoria</option>${CATS.map((c,k)=>`<option value="${k}">${c.n}</option>`).join('')}</select>
+    <details><summary>O inventa la tuya</summary><input id="cn" maxlength="30" placeholder="Nombre de la categoría"><input id="ci" placeholder="8 objetos separados por comas"></details>
+    <button onclick="crear()">Crear sala</button></div>
+    <div class="c"><h2>¿Te han pasado un código?</h2><input id="cd" maxlength="4" placeholder="Código de 4 letras">
+    <button class="s" onclick="unirme()">Unirme a la sala</button></div>
+    <details class="c"><summary>Cómo se juega</summary><p class="m">Cada uno tiene 20 € ficticios y 8 objetos salen de uno en uno, sin verlos antes. Pujad por turnos, subiendo mínimo 1 €. Quien se retira pierde el objeto y abre la siguiente puja. Tenéis 25 segundos por turno. Cada uno se queda con 4. Al final, decidid quién ha hecho el mejor equipo.</p></details>
+    <div class="err" id="er"></div>`;
+    const q=new URLSearchParams(location.search).get('sala');
+    if(q)$('cd').value=q.slice(0,4).toUpperCase();
+    return;
+  }
+  if(S.status==='lobby'){
+    a.innerHTML=`<h1>Sala creada</h1><div class="c"><p class="m">Pásale este código a tu rival:</p><div class="code">${code}</div></div>
+    <button onclick="invitar()">Invitar por WhatsApp o redes</button><p class="m">Esperando a que se una… la partida empieza sola.</p><div class="err" id="er"></div><button class="lk" onclick="salir()">Cancelar</button>`;
+    return;
+  }
+  const o=other(me),my=S[me],op=S[o];
+  const tags=p=>p.items.map(i=>`<span class="tag">${esc(i)}</span>`).join('')||'<span class="m">Nada todavía</span>';
+  const head=`<div class="row"><div class="c"><h2>${esc(my.name)} (tú)</h2><b>${my.b} €</b> · ${my.items.length}/4<div>${tags(my)}</div></div>
+  <div class="c"><h2>${esc(op.name)}</h2><b>${op.b} €</b> · ${op.items.length}/4<div>${tags(op)}</div></div></div>`;
+  if(S.status==='end'){
+    a.innerHTML=`<h1>Subasta terminada</h1>${head}<div class="c"><p class="m">${esc(S.last||'')}</p><h2>¿Quién ha hecho el mejor equipo de ${esc(S.cat.n)}?</h2>${(()=>{
+      const v=S.vt||{},w=S.w||{p1:0,p2:0};
+      const res=v.p1&&v.p2?(v.p1===v.p2?`<p class="item" style="font-size:1.7rem">🏆 ${esc(S[v.p1].name)} gana la ronda</p>`:'<p class="item" style="font-size:1.5rem">No os ponéis de acuerdo 😅</p>'):v[me]?'<p class="m">Voto enviado. Esperando a tu rival…</p>':`<div class="row"><button onclick="votar('${me}')">Yo</button><button class="s" onclick="votar('${o}')">${esc(op.name)}</button></div>`;
+      return res+`<p class="m">Marcador: ${esc(my.name)} ${w[me]} - ${w[o]} ${esc(op.name)}</p>`;
+    })()}</div><button onclick="revancha()">Revancha con otra categoría</button><button class="lk" onclick="salir()">Salir</button>`;
+    return;
+  }
+  const mine=S.turn===me;
+  a.innerHTML=`<p class="m">${esc(S.cat.n)} · objeto ${S.i+1} de 8<span class="tm" id="tm"></span></p>
+  <div class="pic"><span>${S.cat.e[S.i]}</span><img src="img/${slug(S.cat.i[S.i])}.webp" alt="" onerror="this.remove()"></div>
+  <div class="item">${esc(S.cat.i[S.i])}</div>
+  ${S.pk?'':`<div class="price">${S.bid} €</div><p class="m" style="text-align:center">${S.bid?`Puja más alta: ${esc(S[S.by].name)}`:'Nadie ha pujado todavía'}</p>`}
+  <div class="c ${mine?'turn':''}">${S.pk?pickUI():mine?`<h2>Te toca</h2>
+    <input id="n" type="number" inputmode="numeric" min="${S.bid+1}" max="${my.b}" value="${S.bid+1}">
+    <div class="row"><button class="s" onclick="add(1)">+1</button><button class="s" onclick="add(5)">+5</button><button class="s" onclick="add(10)">+10</button><button class="s" onclick="add(99)">Todo</button></div>
+    <button onclick="bid()">Pujar</button>${S.bid?'<button class="r" onclick="pasar()">Retirarme</button>':''}`
+    :`<h2>Turno de ${esc(op.name)}</h2><p class="m">Esperando su jugada…</p>`}</div>
+  <div class="err" id="er"></div>${S.last?`<p class="m">Anterior: ${esc(S.last)}</p>`:''}${head}<button class="lk" onclick="if(confirm('¿Salir de la partida?'))salir()">Salir de la partida</button>`;
+}
+
+(async()=>{
+  R();
+  try{
+    const sv=JSON.parse(localStorage.getItem('sub')||'null');
+    if(sv){
+      const {data}=await sb.from('rooms').select('state').eq('code',sv.code).maybeSingle();
+      if(data){code=sv.code;me=sv.me;enter(data.state);}
+    }
+  }catch(e){}
+  setInterval(async()=>{
+    if(!code)return;
+    const {data}=await sb.from('rooms').select('state').eq('code',code).maybeSingle();
+    if(data)setS(data.state);
+  },2500);
+})();
+</script>
+</body>
+</html>
